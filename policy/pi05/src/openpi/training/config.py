@@ -585,7 +585,7 @@ _CONFIGS = [
         name="pi05_base_aloha_lora",
         model=pi0_config.Pi0Config(pi05=True, paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
         data=LeRobotAlohaDataConfig(
-            repo_id="your_repo_id",  # your datasets repo_id
+            repo_id="stack_blocks_two_demo_clean_repo",  # stack_blocks_two demo_clean dataset
             adapt_to_pi=False,
             repack_transforms=_transforms.Group(inputs=[
                 _transforms.RepackTransform({
@@ -605,9 +605,12 @@ _CONFIGS = [
         ),
         freeze_filter=pi0_config.Pi0Config(paligemma_variant="gemma_2b_lora",
                                     action_expert_variant="gemma_300m_lora").get_freeze_filter(),
-        batch_size=32,  # the total batch_size not pre_gpu batch_size
-        weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi05_base/params"),
-        num_train_steps=30000,
+        batch_size=4,  # single-GPU budget for the 50-episode task dataset
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_base/params"),
+        lr_schedule=_optimizer.CosineDecaySchedule(warmup_steps=500, decay_steps=5000),
+        num_train_steps=5000,
+        save_interval=1000,
+        keep_period=None,
         fsdp_devices=1,
     ),
     # pi0_base by lora

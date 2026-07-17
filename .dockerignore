@@ -1,0 +1,15 @@
+.git
+.idea
+.vscode
+__pycache__
+*.py[cod]
+*.log
+
+# Assets and generated datasets are mounted by Compose at runtime. Keeping them
+# out of the build context avoids sending tens of gigabytes to the daemon.
+assets
+data
+policy/**/training_data
+policy/**/checkpoints
+policy/**/.cache
+envs/curobo

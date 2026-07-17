@@ -9,5 +9,8 @@ instruction_type: unseen
 # Add Parameters You Need
 train_config_name: null
 model_name: null
-checkpoint_id: 30000
-pi0_step: 50
+checkpoint_id: 5000
+pi0_step: 20
+temporal_ensemble: true
+temporal_ensemble_decay: 0.5
+test_num: 20

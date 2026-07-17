@@ -28,3 +28,16 @@ envs/curobo/*
 
 /*.json*
 /*.txt
+
+# Local IDE and runtime artifacts
+.idea/
+*.log
+INSTRUCTION.md
+
+# Generated training/evaluation artifacts
+policy/pi05/training_data/
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm

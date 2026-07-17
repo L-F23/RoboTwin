@@ -15,6 +15,10 @@ import os
 import time
 from argparse import ArgumentParser
 
+os.environ['SAPIEN_RENDERER'] = 'opengl'
+os.environ['SAPIEN_NO_DISPLAY'] = '1'  # 可选，完全禁用显示
+
+
 current_file_path = os.path.abspath(__file__)
 parent_directory = os.path.dirname(current_file_path)
 

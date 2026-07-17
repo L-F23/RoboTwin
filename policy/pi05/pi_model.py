@@ -26,7 +26,15 @@ import os
 
 class PI0:
 
-    def __init__(self, train_config_name, model_name, checkpoint_id, pi0_step):
+    def __init__(
+        self,
+        train_config_name,
+        model_name,
+        checkpoint_id,
+        pi0_step,
+        temporal_ensemble=False,
+        temporal_ensemble_decay=0.5,
+    ):
         self.train_config_name = train_config_name
         self.model_name = model_name
         self.checkpoint_id = checkpoint_id
@@ -45,6 +53,10 @@ class PI0:
         self.img_size = (224, 224)
         self.observation_window = None
         self.pi0_step = pi0_step
+        self.temporal_ensemble = temporal_ensemble
+        self.temporal_ensemble_decay = temporal_ensemble_decay
+        self._action_plans = []
+        self._control_step = 0
 
     # set img_size
     def set_img_size(self, img_size):
@@ -81,7 +93,56 @@ class PI0:
         assert self.observation_window is not None, "update observation_window first!"
         return self.policy.infer(self.observation_window)["actions"]
 
+    def get_action_chunk(self):
+        """Predict a chunk and optionally blend overlapping action plans."""
+        new_actions = np.asarray(self.get_action())
+        chunk_size = min(self.pi0_step, len(new_actions))
+        if chunk_size <= 0:
+            raise ValueError(f"pi0_step must be positive, got {self.pi0_step}")
+
+        if not self.temporal_ensemble:
+            self._control_step += chunk_size
+            return new_actions[:chunk_size]
+
+        start_step = self._control_step
+        self._action_plans = [
+            (plan_start, plan)
+            for plan_start, plan in self._action_plans
+            if plan_start + len(plan) > start_step
+        ]
+        self._action_plans.append((start_step, new_actions))
+
+        blended_actions = []
+        arm_indices = np.array([*range(6), *range(7, 13)])
+        gripper_indices = np.array([6, 13])
+
+        for offset in range(chunk_size):
+            absolute_step = start_step + offset
+            candidates = []
+            for plan_start, plan in reversed(self._action_plans):
+                plan_index = absolute_step - plan_start
+                if 0 <= plan_index < len(plan):
+                    candidates.append(plan[plan_index])
+
+            candidate_array = np.asarray(candidates)
+            ages = np.arange(len(candidate_array), dtype=np.float64)
+            weights = np.exp(-self.temporal_ensemble_decay * ages)
+            weights /= weights.sum()
+
+            action = candidate_array[0].copy()
+            action[arm_indices] = np.sum(
+                candidate_array[:, arm_indices] * weights[:, None], axis=0
+            )
+            # Gripper transitions are discrete, so use the latest plan directly.
+            action[gripper_indices] = candidate_array[0, gripper_indices]
+            blended_actions.append(action)
+
+        self._control_step += chunk_size
+        return np.asarray(blended_actions)
+
     def reset_obsrvationwindows(self):
         self.instruction = None
         self.observation_window = None
+        self._action_plans = []
+        self._control_step = 0
         print("successfully unset obs and language intruction")

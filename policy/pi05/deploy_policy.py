@@ -25,7 +25,14 @@ def encode_obs(observation):
 def get_model(usr_args):
     train_config_name, model_name, checkpoint_id, pi0_step = (usr_args["train_config_name"], usr_args["model_name"],
                                                               usr_args["checkpoint_id"], usr_args["pi0_step"])
-    return PI0(train_config_name, model_name, checkpoint_id, pi0_step)
+    return PI0(
+        train_config_name,
+        model_name,
+        checkpoint_id,
+        pi0_step,
+        temporal_ensemble=usr_args.get("temporal_ensemble", False),
+        temporal_ensemble_decay=usr_args.get("temporal_ensemble_decay", 0.5),
+    )
 
 
 def eval(TASK_ENV, model, observation):
@@ -39,7 +46,7 @@ def eval(TASK_ENV, model, observation):
 
     # ======== Get Action ========
 
-    actions = model.get_action()[:model.pi0_step]
+    actions = model.get_action_chunk()
 
     for action in actions:
         TASK_ENV.take_action(action)

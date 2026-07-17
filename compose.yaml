@@ -1,0 +1,35 @@
+name: robotwin
+
+services:
+  robotwin:
+    image: robotwin:cuda12.1
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      # The local Docker proxy listens on the host loopback interface.
+      network: host
+      args:
+        ROBOTWIN_UID: ${ROBOTWIN_UID:-1000}
+        ROBOTWIN_GID: ${ROBOTWIN_GID:-1000}
+        # RTX 4090 is compute capability 8.9. Override this for another GPU.
+        TORCH_CUDA_ARCH_LIST: ${TORCH_CUDA_ARCH_LIST:-8.9}
+    gpus: all
+    environment:
+      NVIDIA_VISIBLE_DEVICES: ${NVIDIA_VISIBLE_DEVICES:-all}
+      # SAPIEN rendering needs graphics in addition to compute and utility.
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility,graphics
+      CUDA_VISIBLE_DEVICES: ${CUDA_VISIBLE_DEVICES:-0}
+      DISPLAY: ${DISPLAY:-}
+      # Compatibility startup hook plus the project package root.
+      PYTHONPATH: /workspace/RoboTwin/compat:/workspace/RoboTwin
+      XDG_CACHE_HOME: /home/robotwin/.cache
+    volumes:
+      - .:/workspace/RoboTwin
+      - robotwin-cache:/home/robotwin/.cache
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    shm_size: 16gb
+    stdin_open: true
+    tty: true
+
+volumes:
+  robotwin-cache:
